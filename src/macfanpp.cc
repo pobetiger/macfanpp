@@ -16,6 +16,7 @@ static constexpr std::string_view hwmon_dir {"/sys/class/hwmon"};
 
 static std::filesystem::path FindAppleSMC();
 static std::string ReadFile(std::filesystem::path path);
+static json ReadJsonConfig(const std::filesystem::path& filePath);
 
 static std::string ReadFile(std::filesystem::path path)
 {
@@ -41,7 +42,7 @@ std::filesystem::path FindAppleSMC()
         std::filesystem::path deviceNamePath {dirEntry.path()};
         deviceNamePath  /= "device";
         deviceNamePath  /= "name";
-        std::cout << "DEBUG: Checking " << deviceNamePath << std::endl;
+        std::cout << "TRACE: Checking " << deviceNamePath << std::endl;
         if (std::filesystem::exists(deviceNamePath))
         {
             // FIXME: replace this with helper function
@@ -173,12 +174,28 @@ struct FanControl : public SMCObject
     }
 };
 
-int main(int argc, char** argv)
+static json ReadJsonConfig(const std::filesystem::path& filePath)
 {
-    std::ifstream fin {"sensor_names.json"};
-    json SensorNames;
-    fin >> SensorNames;
+    json j;
+    if (auto fin = std::ifstream{filePath};
+        fin.good())
+    {
+        fin >> j;
+        std::cout << "TRACE: JsonFile: " << filePath << " read successfully" << std::endl;
+    }
+    else
+    {
+        std::cout << "WARN : JsonFile: " << filePath << " read error" << std::endl;
+    }
 
+    return j;
+}
+
+
+int main(int, char**)
+{
+    auto SensorNames = ReadJsonConfig("sensor_names.json");
+    auto UserConfig = ReadJsonConfig("user.json");
 
     std::vector<SensorInput> sensors;
     std::vector<FanControl> fans;
