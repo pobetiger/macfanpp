@@ -1,17 +1,20 @@
-//#include <nlohmann/json.hpp>
-#include <iostream>
+
 #include <filesystem>
-#include <iterator>
 #include <fstream>
+#include <iterator>
+#include <iostream>
+#include <sstream>
 #include <vector>
 
-//using json = nlohmann::json;
+#include <nlohmann/json.hpp>
 
 using DirIter = std::filesystem::directory_iterator;
 
+using json = nlohmann::json;
+
 static constexpr std::string_view hwmon_dir {"/sys/class/hwmon"};
 
-static std::filesystem::path OpenAppleSMC();
+static std::filesystem::path FindAppleSMC();
 static std::string ReadFile(std::filesystem::path path);
 
 static std::string ReadFile(std::filesystem::path path)
@@ -28,7 +31,7 @@ static std::string ReadFile(std::filesystem::path path)
 }
 
 
-std::filesystem::path OpenAppleSMC()
+std::filesystem::path FindAppleSMC()
 {
     // the applesmc typically looks like /sys/class/hwmon/hwmonNN/device/name
     // and the file `name` it self contains "applesmc"
@@ -65,21 +68,67 @@ std::filesystem::path OpenAppleSMC()
 
 struct SMCObject
 {
-    SMCObject(std::filesystem::path path_)
-        : path(path_)
+    SMCObject(std::filesystem::path path_, const json &SensorNames)
     {
+        label = ReadFile(path_);
+        description = SensorNames.contains(label) ?  SensorNames[label] : "";
+
+        // strip the base and store the base path for later
+        auto fileName = std::string(path_.filename());
+        auto baseEnd = fileName.rfind("_label");
+        if (baseEnd == std::string::npos)
+        {
+            // probably okay...
+            //throw std::runtime_error("Invalid SMC Object path");
+            baseEnd = fileName.size();
+        }
+        std::string baseName = fileName.substr(0, baseEnd);
+
+        basePath = path_.parent_path() / baseName;
+
+        std::cout << "DEBUG: " << PrintStatus() << std::endl;
     }
     // FIXME: rule of 5
 
-    unsigned long Read()
+    std::string PrintStatus()
     {
-        return input;
+        std::stringstream ss;
+        ss << "SMCObject: [" << label << "]";
+        ss << " input=" << Input();
+        if (description.empty())
+        {
+            ss << " path=" << basePath;
+        }
+        else
+        {
+            ss << " desc=[" << Description() << "]";
+        }
+
+        return ss.str();
     }
 
-    std::filesystem::path path;
-    std::string label;
+    std::string Label() const // immutable also
+    {
+        return label;
+    }
+    std::string Description() const // immutable also
+    {
+        return description;
+    }
 
-    unsigned long input;
+    std::string Input()
+    {
+        return ReadFile(Get("input"));
+    }
+
+    std::filesystem::path Get(std::string item)
+    {
+        return {basePath.string() + "_" + item};
+    }
+
+    std::filesystem::path basePath;
+    std::string label;
+    std::string description;
 };
 
 using SensorInput = SMCObject; // alias
@@ -87,57 +136,70 @@ using SensorInput = SMCObject; // alias
 // these begins with fanNN_<field>
 struct FanControl : public SMCObject
 {
-    FanControl(std::filesystem::path path_)
-        : SMCObject(path_)
+    FanControl(std::filesystem::path path_, const json &SensorNames)
+        : SMCObject(path_, SensorNames)
     {
+        std::cout << "DEBUG: " << PrintStatus() << std::endl;
     }
     // FIXME: rule of 5
 
-    void Write(unsigned long output_)
+    std::string PrintStatus()
     {
-        output = output_;
+        std::stringstream ss;
+
+        ss << "FanControl: [" << label << "] "
+           << "Manual: " << Manual() << ", output: " << Output() << " [" << Min() << ", " << Max() << "]";
+        return ss.str();
     }
 
-    void SetManual(bool manual_)
+    std::string Output()
     {
-        manual = manual_;
+        return ReadFile(Get("output"));
     }
 
-    // FIXME: the way these are named are not quite right
-    //        as we will never want to direclty cache these things
-    //        just dump them out to device (maybe)
-    unsigned long output;
-    unsigned int manual;
+    std::string Manual()
+    {
+        return ReadFile(Get("manual"));
+    }
 
-    unsigned long min;
-    unsigned long max;
-    unsigned long safe; // Can't read TBD
+    std::string Min()
+    {
+        return ReadFile(Get("min"));
+    }
+
+    std::string Max()
+    {
+        return ReadFile(Get("max"));
+    }
 };
 
 int main(int argc, char** argv)
 {
+    std::ifstream fin {"sensor_names.json"};
+    json SensorNames;
+    fin >> SensorNames;
+
+
     std::vector<SensorInput> sensors;
     std::vector<FanControl> fans;
 
-    auto smcPath = OpenAppleSMC();
+    auto smcPath = FindAppleSMC();
 
-    for (const auto& file : DirIter(smcPath))
+    for (const auto& file : DirIter(smcPath)) // can throw
     {
         std::string filenameBase {file.path().filename()};
 
         if (filenameBase.starts_with("fan") && filenameBase.ends_with("label"))
         {
-            auto label = ReadFile(file.path());
-            std::cout << "INFO : Found fan control: " << filenameBase << ", label: [" << label << "]" << std::endl;
+            auto obj = FanControl{file.path(), SensorNames};
             // TODO: filter out based on user.json
-            fans.emplace_back(file.path());
+            fans.push_back(std::move(obj));
         }
         else if (filenameBase.starts_with("temp") && filenameBase.ends_with("label"))
         {
-            auto label = ReadFile(file.path());
-            std::cout << "INFO : Found input sensor: " << filenameBase << ", label: [" << label << "] " << std::endl;
+            auto obj = SensorInput{file.path(), SensorNames};
             // TODO: filter out based on user.json
-            sensors.emplace_back(file.path());
+            sensors.push_back(std::move(obj));
         }
         // other stuff ignored
     }
