@@ -38,7 +38,7 @@
                 "TC1C", "TC2C", "TCXC", "TC0E", "TC0F"
             ],
             "method": "avg",
-            "temp-range": [49, 83],
+            "temp-range": [47, 83],
             "comment": [
                 "ignoring the following: Th1H and TC0P, these do not change fast enough when averaging",
                 "ignoring TCGC, it seems more related to GPU",
