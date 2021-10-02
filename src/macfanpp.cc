@@ -22,10 +22,27 @@ static constexpr std::string_view hwmon_dir {"/sys/class/hwmon"};
 
 static std::filesystem::path FindAppleSMC();
 static std::string ReadFile(std::filesystem::path path);
+static void WriteFile(std::filesystem::path path, std::string_view data);
 static json ReadJsonConfig(const std::filesystem::path& filePath);
 static bool IsGlobalIgnoredFan(const json &config, std::string_view label);
 static bool IsGlobalIgnoredSensor(const json &config, std::string_view label);
 
+static void WriteFile(std::filesystem::path path, std::string_view data)
+{
+    std::string content {};
+    std::ofstream fout {path};
+    if (fout.good())
+    {
+        fout << data;
+        fout << std::flush;
+        fout.close();
+    }
+    else
+    {
+        std::cout << "ERROR: unable to write to " << path << std::endl;
+    }
+
+}
 
 static std::string ReadFile(std::filesystem::path path)
 {
@@ -35,6 +52,10 @@ static std::string ReadFile(std::filesystem::path path)
     {
         content = std::string{std::istreambuf_iterator<char>{fin}, {}};
         content.pop_back(); // there's a known newline here
+    }
+    else
+    {
+        std::cout << "ERROR: unable to read from " << path << std::endl;
     }
 
     return content;
@@ -174,6 +195,17 @@ struct FanControl : public SMCObject
         return ss.str();
     }
 
+    void Output(long value)
+    {
+
+        std::stringstream ss;
+        ss << value;
+
+        std::string txt {ss.str()};
+        //std::cout << "TRACE: write " << txt << " to " << Get("output") << std::endl;
+        WriteFile(Get("output"), txt);
+    }
+
     std::string Output()
     {
         return ReadFile(Get("output"));
@@ -182,6 +214,11 @@ struct FanControl : public SMCObject
     std::string Manual()
     {
         return ReadFile(Get("manual"));
+    }
+
+    void Manual(bool yes)
+    {
+        WriteFile(Get("manual"), (yes ? "1" : "0"));
     }
 
     long Min()
@@ -347,6 +384,8 @@ static void MonitorGroup(const json & config, std::vector<SensorInput> &sensors,
            << fan.Output() << " [" << fan.Min() << ", " << fan.Max() << "]"
            << ", Target=" << fanTarget << " RPM"
            << std::endl;
+
+        fan.Output(fanTarget);
     }
 }
 
@@ -371,6 +410,7 @@ int main(int, char**)
             if (!IsGlobalIgnoredFan(UserConfig, obj.Label()))
             {
                 std::cout << "INFO : Added fan " << obj.Label() << std::endl;
+                obj.Manual(true);
                 fans.push_back(std::move(obj));
             }
             else
