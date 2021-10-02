@@ -2,11 +2,12 @@
 
 Basically a staggered groups of Proportional controller without feedback loop.
 
-4 groups (see example config below)
-1.) "hot zone": temp_max from non-excluded sensors must be 65 - 70, min fan speed=4000
-2.) "avg rule": temp_avg from non-excluded sensors must be 45 - 55
-3.) "cpu group": temp_cpu  from TC0P sensors must be 50 - 58
-4.) "gpu group": temp_gpu  from TG0P sensors must be 50 - 58
+4 groups (see example config below):
+
+1. "hot zone": temp_max from non-excluded sensors must be 65 - 70, min fan speed=4000
+2. "avg rule": temp_avg from non-excluded sensors must be 45 - 55
+3. "cpu group": temp_cpu  from TC0P sensors must be 50 - 58
+4. "gpu group": temp_gpu  from TG0P sensors must be 50 - 58
 
 For most the algorithm divides the temperature range by the fan speed range:
 

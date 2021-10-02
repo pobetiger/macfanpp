@@ -1,32 +1,71 @@
 {
-    "user_comment": "This is the user config to select which sensors and which fans to use",
-    "select_profile": "macfanctld",
+    "description": "MacBookPro 14,2",
     "global_ignore_sensor": [
+        "--comment-- these are battery bays",
+        "TH0B", "TH0b", "TH0C", "TH0c", "TH0R", "TH0x", "TH0F",
+        "--comment-- palm rest ignored",
+        "Ts0P", "Ts1P",
+        "--comment-- wireless card",
+        "TW0P",
+        "--comment-- these are not sure",
+        "TaRC", "TSDO", "TTRD", "TA0V", "TCTD", "TBXT", "TSDV", "TCMX", "TCMc", "TaLC"
     ],
-    "global_ignore_fan": [
-    ],
-    "global_fan_min": 2000,
-    "profiles": [
+    "global_ignore_fan": [],
+    "global_fan_min": 1500,
+    "sample_period_sec": 3,
+    "rules": [
         {
-            "name": "macfanctld",
-            "description": "this is the original macfanctld profile (the philosophy anyway)",
-            "ignore_fan": []
+            "order": 1,
+            "name": "Max-Rule",
+            "description": "max(all non-excluded sensors) within range",
+            "sensors": [],
+            "method": "none",
+            "temp-range": []
         },
         {
-            "name": "full-blast",
-            "description": "This profile just blast the fans that are not ignored at max speed",
-            "ignore_fan": []
+            "order": 2,
+            "description": "avg(all non-excluded sensors) within range",
+            "name": "Avg-Rule",
+            "sensors": [],
+            "method": "none",
+            "temp-range": []
         },
         {
-            "name": "cpu-only",
-            "description": "only controls the fan based on CPU only",
-            "ignore_fan": []
+            "order": 3,
+            "description": "avg(all CPU sensors) within range",
+            "name": "CPU-Group",
+            "sensors": [
+                "TC1C", "TC2C", "TCXC", "TC0E", "TC0F"
+            ],
+            "method": "avg",
+            "temp-range": [49, 83],
+            "comment": [
+                "ignoring the following: Th1H and TC0P, these do not change fast enough when averaging",
+                "ignoring TCGC, it seems more related to GPU",
+                "the temp-range is determined empirically, YMMV"
+            ]
         },
         {
-            "name": "mbp14,2",
-            "description": "Ben's MacbookPro 14,2 tuning profile",
-            "ignore_fan": []
+            "order": 4,
+            "name": "GPU-Group",
+            "description": "avg(all GPU sensors) within range",
+            "comment": "These are somewhat related to GPU so put here",
+            "sensors": ["TCGC", "Th1H"],
+            "method": "max",
+            "temp-range": [47, 80]
+        },
+        {
+            "order": 5,
+            "name": "Battery-Group",
+            "description": "avg(all battery sensors) within range",
+            "comment": "These are sensors that might relate to battery that I can find no range, just monitor",
+            "sensors": [
+                "TB0T", "TB1T", "TB2T"
+            ],
+            "method": "foobar",
+            "temp-range": [0, 50]
         }
+
     ]
 }
 
