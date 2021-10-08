@@ -378,6 +378,7 @@ static void MonitorGroup(const json & config, std::vector<SensorInput> &sensors,
         auto fanTarget = static_cast<long>(std::round((maxP != std::end(PValues) ? *maxP : 0.01) * fanRange));
 
         fanTarget += std::max(fan.Min(), global_fan_min);
+        fanTarget = std::min(fan.Max(), fanTarget);
 
         std::cout << "INFO : FanControl: [" << fan.Label() << "] "
            << "Manual: " << fan.Manual() << ", output: "
