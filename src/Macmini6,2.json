@@ -1,0 +1,62 @@
+{
+    "description": "MacMini 6,2",
+    "global_ignore_sensor": [
+        "--comment-- these are battery bays",
+        "TH0B", "TH0b", "TH0C", "TH0c", "TH0R", "TH0x", "TH0F",
+        "--comment-- palm rest ignored",
+        "Ts0P", "Ts1P",
+        "--comment-- wireless card",
+        "TW0P",
+        "--comment-- these are not sure",
+        "TaRC", "TSDO", "TTRD", "TA0V", "TCTD", "TBXT", "TSDV", "TCMX", "TCMc", "TaLC"
+    ],
+    "global_ignore_fan": [],
+    "global_fan_min": 1800,
+    "sample_period_sec": 3,
+    "rules": [
+        {
+            "order": 1,
+            "name": "Max-Rule",
+            "description": "max(all non-excluded sensors) within range",
+            "sensors": [],
+            "method": "none",
+            "temp-range": []
+        },
+        {
+            "order": 2,
+            "description": "avg(all non-excluded sensors) within range",
+            "name": "Avg-Rule",
+            "sensors": [],
+            "method": "none",
+            "temp-range": []
+        },
+        {
+            "order": 3,
+            "description": "avg(all CPU sensors) within range",
+            "name": "CPU-Group",
+            "sensors": [
+		"TCXc", "TC0P", "TC0F", "TC1C", "TC0C", "TC3C", "TC2C", "TC0D",
+		"TCXC",
+                "TC0E",
+		"TCGC"
+            ],
+            "method": "avg",
+            "temp-range": [47, 83],
+            "comment": [
+                "ignoring the following: Th1H and TC0P, these do not change fast enough when averaging",
+                "ignoring TCGC, it seems more related to GPU",
+                "the temp-range is determined empirically, YMMV"
+            ]
+        },
+        {
+            "order": 4,
+            "name": "GPU-Group",
+            "description": "avg(all GPU sensors) within range",
+            "comment": "These are somewhat related to GPU so put here",
+            "sensors": ["TCGC"],
+            "method": "max",
+            "temp-range": [47, 80]
+        }
+    ]
+}
+
