@@ -13,6 +13,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    
+    - name: Install nlohmann-json
+      run: sudo apt install nlohmann-json
       
     - name: Clean up
       run: make clean
