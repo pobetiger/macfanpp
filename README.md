@@ -1,4 +1,5 @@
-# macfanpp
+# macfanpp [![C/C++ CI](https://github.com/pobetiger/macfanpp/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/pobetiger/macfanpp/actions/workflows/c-cpp.yml)
+
 Fan control for MacBook/MacMini, spiritual successor to macfanctld.
 
 This is a software to control the Macbook, MacbookPro, and MacMini machine's SMC interface to obtain
