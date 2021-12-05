@@ -1,4 +1,5 @@
-
+CC = clang
+CXX = clang++
 # DEBUG build -g can baloon up the image size
 # so for production build, maybe take it out
 CXXFLAGS := -std=c++20 -O2 -g \
