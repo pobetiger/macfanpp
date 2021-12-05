@@ -14,41 +14,42 @@ labeled with "guess" in the name.
 
 ## Research on the sources
 
-Ones marked with "(Guess)" are guesses based on the names in 
+Ones marked with "(Guess)" are guesses based on the names in
 https://www.mail-archive.com/mactel-linux-devel@lists.sourceforge.net/msg00526.html
 
 First source: https://discussions.apple.com/thread/4838014
 
     TA0P:         +36.5°C  AMBIENT_TEMPERATURE
-    TA0p:         +36.5°C 
+    TA0p:         +36.5°C
     TA1P:         +37.5°C  AMBIENT1_TEMPERATURE
-    TA1p:         +37.5°C 
+    TA1p:         +37.5°C
     TC0C:         +42.0°C  CPU_DIE_CORE_TEMPERATURE Digital
     TC0D:         +43.5°C  CPU_DIODE_TEMPERATURE Analog
-    TC0E:         +43.8°C 
-    TC0F:         +44.8°C 
-    TC0G:         +99.0°C 
-    TC0J:          +1.0°C 
+    TC0E:         +43.8°C
+    TC0F:         +44.8°C
+    TC0G:         +99.0°C
+    TC0J:          +1.0°C
     TC0P:         +40.2°C  CPU_PROXIMITY_TEMPERATURE
-    TC0c:         +42.0°C 
-    TC0d:         +43.5°C 
-    TC0p:         +40.2°C 
-    TC1C:         +42.0°C 
-    TC1c:         +42.0°C 
-    TC2C:         +42.0°C 
-    TC2c:         +42.0°C 
-    TC3C:         +42.0°C 
-    TC3c:         +42.0°C 
+    TC0c:         +42.0°C
+    TC0d:         +43.5°C
+    TC0p:         +40.2°C
+    TC1C:         +42.0°C
+    TC1c:         +42.0°C
+    TC2C:         +42.0°C
+    TC2c:         +42.0°C
+    TC3C:         +42.0°C
+    TC3c:         +42.0°C
     TCGC:         +41.0°C  CPU_PECI_CORE_TEMPERATURE
     TCGc:         +41.0°C  PECI_GFX_TEMPERATURE
-    TCPG:        +103.0°C 
+    TCPG:        +103.0°C
     TCSC:         +42.0°C  PECI_SA_TEMPERATURE
 
 
-Other couple sources: 
+Other couple sources:
 - https://web.archive.org/web/20151103144947/http://www.parhelia.ch/blog/statics/k3_keys.html
 - https://web.archive.org/web/20160525201657/http://jbot-42.github.io:80/Articles/smc.html
 - https://superuser.com/questions/553197/interpreting-sensor-names specifically:
+
 
     PECI CPU                   : TCXC
     PECI CPU                   : TCXc
