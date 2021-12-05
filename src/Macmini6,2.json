@@ -41,7 +41,7 @@
 		"TCGC"
             ],
             "method": "avg",
-            "temp-range": [47, 83],
+            "temp-range": [49, 83],
             "comment": [
                 "ignoring the following: Th1H and TC0P, these do not change fast enough when averaging",
                 "ignoring TCGC, it seems more related to GPU",
@@ -55,7 +55,7 @@
             "comment": "These are somewhat related to GPU so put here",
             "sensors": ["TCGC"],
             "method": "max",
-            "temp-range": [47, 80]
+            "temp-range": [49, 80]
         }
     ]
 }
