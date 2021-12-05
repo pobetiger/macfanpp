@@ -7,7 +7,7 @@ temperature sensor reaings and use it to control the system's fan on the same in
 ## What problem does this program solve?
 
 When running Linux on the Mac devices, the SMC is used to read the temperature sensors and control
-the fan. The driver does not have the bindings between the two that allows lm_sensors to control
+the fan. The driver does not have the bindings between the two that allows `lm_sensors` to control
 the fan. Therefore a separate program will be needed to manage the fans.
 
 Additional requirement too, may arise from needing to define custom group of sensor -> fan control.
@@ -39,7 +39,7 @@ Or to give battery or harddrive more cooling based on detected temperature in th
 
 ## What's working?
 
-- Been using it as daily driver for MacbookPro14,2 for a while doing development work 
+- Been using it as daily driver for MacbookPro14,2 for a while doing development work
   (many Firefox tabs, light compiles, streaming, OBS, gstreamer encode/decode, youtube, Google Meet/Chat, etc.)
 - Recented started using it on my MacMini6,2 also (mainly a media/gaming machine)
 
@@ -72,3 +72,8 @@ Or to give battery or harddrive more cooling based on detected temperature in th
 
 - `clang`, recent version that supports `std::filesystem`
 - `nlohmann::json`, it makes json so easy.
+
+## RDEPENDS
+
+- Kernel that supports the `SMC` and a Mac machine.
+
