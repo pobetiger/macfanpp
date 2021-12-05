@@ -50,7 +50,7 @@ Other couple sources:
 - https://web.archive.org/web/20160525201657/http://jbot-42.github.io:80/Articles/smc.html
 - https://superuser.com/questions/553197/interpreting-sensor-names specifically:
 
-
+```
     PECI CPU                   : TCXC
     PECI CPU                   : TCXc
     CPU 1 Proximity            : TC0P
@@ -213,6 +213,7 @@ Other couple sources:
     Battery Rail               : PB0R
     DC In Total                : PDTR
     System Total               : PSTR
+```
 
 - https://www.mail-archive.com/mactel-linux-devel@lists.sourceforge.net/msg00526.html
 
