@@ -10,7 +10,10 @@ CXXFLAGS := -std=c++20 -O2 -g \
 			-Wno-c++98-compat \
 			-Wno-c++98-compat-pedantic
 
-SRCS := src/macfanpp.cc
+SRCS := src/macfanpp.cc \
+	src/SMCObject.cc \
+	src/FileUtils.cc \
+	src/FanControl.cc
 OBJS := $(addsuffix .o,$(basename ${SRCS}))
 
 .PHONY: all

@@ -1,257 +1,34 @@
 
 #include <chrono>
+using std::operator""s;  // std::chrono::seconds
+
 #include <filesystem>
-#include <fstream>
+using DirIter = std::filesystem::directory_iterator;
+
 #include <iterator>
 #include <iostream>
 #include <numeric>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <thread>
 #include <vector>
 
 #include <nlohmann/json.hpp>
-
-using std::operator""s;  // std::chrono::seconds
-using DirIter = std::filesystem::directory_iterator;
-
 using json = nlohmann::json;
 
-static constexpr std::string_view hwmon_dir {"/sys/class/hwmon"};
+#include "FileUtils.h"
 
-static std::filesystem::path FindAppleSMC();
-static std::string ReadFile(std::filesystem::path path);
-static void WriteFile(std::filesystem::path path, std::string_view data);
-static json ReadJsonConfig(const std::filesystem::path& filePath);
-static bool IsGlobalIgnoredFan(const json &config, std::string_view label);
-static bool IsGlobalIgnoredSensor(const json &config, std::string_view label);
-
-static void WriteFile(std::filesystem::path path, std::string_view data)
-{
-    std::string content {};
-    std::ofstream fout {path};
-    if (fout.good())
-    {
-        fout << data;
-        fout << std::flush;
-        fout.close();
-    }
-    else
-    {
-        std::cout << "ERROR: unable to write to " << path << std::endl;
-    }
-
-}
-
-static std::string ReadFile(std::filesystem::path path)
-{
-    std::string content {};
-    std::ifstream fin {path};
-    if (fin.good())
-    {
-        content = std::string{std::istreambuf_iterator<char>{fin}, {}};
-        content.pop_back(); // there's a known newline here
-    }
-    else
-    {
-        std::cout << "ERROR: unable to read from " << path << std::endl;
-    }
-
-    return content;
-}
-
-
-std::filesystem::path FindAppleSMC()
-{
-    // the applesmc typically looks like /sys/class/hwmon/hwmonNN/device/name
-    // and the file `name` it self contains "applesmc"
-    std::filesystem::path smcPath {};
-    for (const auto& dirEntry : DirIter(hwmon_dir))
-    {
-        std::filesystem::path deviceNamePath {dirEntry.path()};
-        deviceNamePath  /= "device";
-        deviceNamePath  /= "name";
-        std::cout << "TRACE: Checking " << deviceNamePath << std::endl;
-        if (std::filesystem::exists(deviceNamePath))
-        {
-            // FIXME: replace this with helper function
-            std::cout << "TRACE: Device has name, checking name" << std::endl;
-            std::ifstream fin {deviceNamePath};
-            if (fin.good())
-            {
-                std::string name {std::istreambuf_iterator<char>{fin}, {}};
-                name.pop_back(); // there's a known newline here
-                std::cout << "TRACE: Device name: [" << name << "]" << std::endl;
-                if (name == "applesmc")
-                    smcPath = dirEntry.path() / "device";
-            }
-        }
-    }
-
-    if (!smcPath.empty())
-    {
-        std::cout << "INFO : Found applesmc device: " << smcPath << std::endl;
-    }
-
-    return smcPath;
-}
-
-struct SMCObject
-{
-    SMCObject(std::filesystem::path path_, const json &SensorNames)
-    {
-        label = ReadFile(path_);
-        description = SensorNames.contains(label) ?  SensorNames[label] : "";
-
-        // strip the base and store the base path for later
-        auto fileName = std::string(path_.filename());
-        auto baseEnd = fileName.rfind("_label");
-        if (baseEnd == std::string::npos)
-        {
-            // probably okay...
-            //throw std::runtime_error("Invalid SMC Object path");
-            baseEnd = fileName.size();
-        }
-        std::string baseName = fileName.substr(0, baseEnd);
-
-        basePath = path_.parent_path() / baseName;
-
-        std::cout << "DEBUG: " << PrintStatus() << std::endl;
-    }
-    // FIXME: rule of 5
-
-    std::string PrintStatus()
-    {
-        std::stringstream ss;
-        ss << "SMCObject: [" << label << "]";
-        //ss << " input=" << Input();
-        ss << " Temp=" << std::fixed << std::setfill('0') << std::setw(3) << std::setprecision(3)
-           << Value() << "\'C";
-        if (description.empty())
-        {
-            ss << " path=" << basePath;
-        }
-        else
-        {
-            ss << " desc=[" << Description() << "]";
-        }
-
-        return ss.str();
-    }
-
-    std::string Label() const // immutable also
-    {
-        return label;
-    }
-    std::string Description() const // immutable also
-    {
-        return description;
-    }
-
-    std::string Input()
-    {
-        return ReadFile(Get("input"));
-    }
-
-    double Value()
-    {
-        std::string txt = Input();
-        auto value = std::stod(txt);
-        value /= 1000.0;
-        return value;
-    }
-
-
-    std::filesystem::path Get(std::string item)
-    {
-        return {basePath.string() + "_" + item};
-    }
-
-    std::filesystem::path basePath;
-    std::string label;
-    std::string description;
-};
-
+#include "SMCObject.h"
 using SensorInput = SMCObject; // alias
 
-// these begins with fanNN_<field>
-struct FanControl : public SMCObject
-{
-    FanControl(std::filesystem::path path_, const json &SensorNames)
-        : SMCObject(path_, SensorNames)
-    {
-        std::cout << "DEBUG: " << PrintStatus() << std::endl;
-    }
-    // FIXME: rule of 5
+#include "FanControl.h"
 
-    std::string PrintStatus()
-    {
-        std::stringstream ss;
 
-        ss << "FanControl: [" << label << "] "
-           << "Manual: " << Manual() << ", output: "
-           << Output() << " [" << Min() << ", " << Max() << "]";
-        return ss.str();
-    }
 
-    void Output(long value)
-    {
 
-        std::stringstream ss;
-        ss << value;
 
-        std::string txt {ss.str()};
-        //std::cout << "TRACE: write " << txt << " to " << Get("output") << std::endl;
-        WriteFile(Get("output"), txt);
-    }
-
-    std::string Output()
-    {
-        return ReadFile(Get("output"));
-    }
-
-    std::string Manual()
-    {
-        return ReadFile(Get("manual"));
-    }
-
-    void Manual(bool yes)
-    {
-        WriteFile(Get("manual"), (yes ? "1" : "0"));
-    }
-
-    long Min()
-    {
-        auto txt = ReadFile(Get("min"));
-        auto value = std::stol(txt);
-        return value;
-    }
-
-    long Max()
-    {
-        auto txt = ReadFile(Get("max"));
-        auto value = std::stol(txt);
-        return value;
-    }
-};
-
-static json ReadJsonConfig(const std::filesystem::path& filePath)
-{
-    json j;
-    if (auto fin = std::ifstream{filePath};
-        fin.good())
-    {
-        fin >> j;
-        std::cout << "TRACE: JsonFile: " << filePath << " read successfully" << std::endl;
-    }
-    else
-    {
-        std::cout << "WARN : JsonFile: " << filePath << " read error" << std::endl;
-    }
-
-    return j;
-}
+static bool IsGlobalIgnoredFan(const json &config, std::string_view label);
+static bool IsGlobalIgnoredSensor(const json &config, std::string_view label);
 
 static bool IsGlobalIgnoredFan(const json &config, std::string_view label)
 {
