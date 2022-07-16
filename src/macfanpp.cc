@@ -23,6 +23,8 @@ using SensorInput = SMCObject; // alias
 
 #include "FanControl.h"
 
+#include "DBusAppIF.h"
+
 
 
 
@@ -226,13 +228,20 @@ int main(int, char**)
         return 0;
     }
 
-    std::atomic<bool> is_running{true};
-    while (is_running)
-    {
+    auto app = std::make_unique<DBusAppIF>();
+
+    std::locale::global(std::locale(""));
+    DBusAppIF::InitEnv();
+
+    app->RegisterTimeoutHandle([&]() {
         std::cout << "\33[2J\33[1;1f\n-----" << std::endl;
         MonitorGroup(UserConfig, sensors, fans);
-        std::this_thread::sleep_for(1s * Ts);
-    }
+        // FIXME: set time period 
+        //std::this_thread::sleep_for(1s * Ts);
+    });
+
+    // starts the application loop
+    app->Run();
 
     return 0;
 }
