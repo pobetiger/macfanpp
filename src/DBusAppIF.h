@@ -41,7 +41,7 @@ public:
     DBusAppIF& operator=(DBusAppIF&&) =delete;
 
     void Run();
-    void RegisterTimeoutHandle(std::function<void()> &&timeOutTask_);
+    void RegisterTimeoutHandle(std::function<std::string()> &&timeOutTask_);
 
 protected:
 
@@ -63,7 +63,7 @@ private:
     Gio::DBus::InterfaceVTable vtable;
     Glib::RefPtr<Gio::DBus::Connection> connection;
 
-    std::function<void()> timeOutTask;
+    std::function<std::string()> timeOutTask;
 
     static constexpr std::string_view serviceXml = {
         "<node>"

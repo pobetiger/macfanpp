@@ -23,19 +23,23 @@ DBusAppIF::~DBusAppIF()
 
 bool DBusAppIF::on_timeout()
 {
-    std::cout << "Timeout" << std::endl;
+    std::string result {"{data: \"fan/sensor data\"}"};
 
-    auto x = Glib::VariantContainerBase::create_tuple(Glib::Variant<std::string>::create("{data: \"fan/sensor data\"}"));
+    //std::cout << "Timeout" << std::endl;
+
+    if (timeOutTask)
+    {
+        result = timeOutTask();
+    }
+
+    auto x = Glib::VariantContainerBase::create_tuple(Glib::Variant<std::string>::create(result));
     connection->emit_signal("/com/pobetiger/macfanpp/Control",
                             "com.pobetiger.macfanpp",
                             "Timeout",
                             "", // to all listeners
                             x);
 
-    if (timeOutTask)
-    {
-        timeOutTask();
-    }
+
 
     return true; // recur
 }
@@ -71,7 +75,7 @@ void DBusAppIF::on_name_acquired(const Glib::RefPtr<Gio::DBus::Connection>& conn
     }
 }
 
-void DBusAppIF::RegisterTimeoutHandle(std::function<void()> &&timeOutTask_)
+void DBusAppIF::RegisterTimeoutHandle(std::function<std::string()> &&timeOutTask_)
 {
     timeOutTask = std::move(timeOutTask_);
 }

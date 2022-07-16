@@ -58,11 +58,13 @@ static bool IsGlobalIgnoredSensor(const json &config, std::string_view label)
     });
 }
 
-static void MonitorGroup(const json & config, std::vector<SensorInput> &sensors, std::vector<FanControl> &fans);
-
-static void MonitorGroup(const json & config, std::vector<SensorInput> &sensors, std::vector<FanControl> &fans)
+static std::string MonitorGroup(const json & config, std::vector<SensorInput> &sensors, std::vector<FanControl> &fans);
+static std::string MonitorGroup(const json & config, std::vector<SensorInput> &sensors, std::vector<FanControl> &fans)
 {
     std::vector<double> PValues {};
+
+    json out{};
+    out["program"] = {"macfanpp"};
 
     for (const auto &rule : config["rules"])
     {
@@ -73,7 +75,9 @@ static void MonitorGroup(const json & config, std::vector<SensorInput> &sensors,
         bool hasTempRange = (rule.contains("temp-range") && rule["temp-range"].size() == 2);
         std::vector<double> sensor_readings{};
 
-        std::cout << "\nINFO : Sensor Group [" << rule["name"] << "]" << std::endl;
+        //std::cout << "\nINFO : Sensor Group [" << rule["name"] << "]" << std::endl;
+
+        json sensors_json;
         const auto& group_sensors = rule["sensors"];
         for (const auto& group_sensor : group_sensors)
         {
@@ -82,12 +86,21 @@ static void MonitorGroup(const json & config, std::vector<SensorInput> &sensors,
                 });
                 iter != std::end(sensors))
             {
-                std::cout << "INFO : " << iter->PrintStatus() << std::endl;
+                sensors_json.push_back({
+                    {"label", iter->Label()},
+                    {"temperature", iter->Value()},
+                    {"description", iter->Description()}
+                });
+
+                //std::cout << "INFO : " << iter->PrintStatus() << std::endl;
                 sensor_readings.push_back(iter->Value());
             }
         }
 
+
         // FIXME: refactor
+        json sensor_processed;
+        json calcuations;
         double processedVal {-1.0};
         if (actOnSensor) // FIXME: rename to processSensors
         {
@@ -95,44 +108,75 @@ static void MonitorGroup(const json & config, std::vector<SensorInput> &sensors,
             {
                 auto sum = std::accumulate(std::begin(sensor_readings), std::end(sensor_readings), 0.0);
                 sum /= static_cast<double>(sensor_readings.size());
-                std::cout << "-----\nINFO : Sensor Group [" << rule["name"] << "]"
-                          << " Method=" << rule["method"] << " Val=" << sum << "\'C" << std::endl;
+
+                sensor_processed.push_back({
+                    { "avg",
+                        { "value", sum }
+                    }
+                });
+
+                //std::cout << "-----\nINFO : Sensor Group [" << rule["name"] << "]"
+                //          << " Method=" << rule["method"] << " Val=" << sum << "\'C" << std::endl;
                 processedVal = sum;
             }
             else if (rule["method"] == "max")
             {
                 auto iter = std::max_element(std::begin(sensor_readings), std::end(sensor_readings));
-                std::cout << "-----\nINFO : Sensor Group [" << rule["name"] << "]"
-                          << " Method=" << rule["method"] << " Val=" << *iter << "\'C" << std::endl;
+
+                sensor_processed.push_back({
+                    { "max", 
+                        { "value", *iter }
+                    }
+                });
+
+                //std::cout << "-----\nINFO : Sensor Group [" << rule["name"] << "]"
+                //          << " Method=" << rule["method"] << " Val=" << *iter << "\'C" << std::endl;
                 processedVal = *iter;
             }
             else
             {
+                sensor_processed.push_back({
+                    { rule["method"].get<std::string>(),
+                        { "error", "unsupported sensor method" }
+                    }
+                });
+
                 std::cout << "WARN : Unsupported sensor method [" << rule["method"] << "]" << std::endl;
             }
+
 
             if (hasTempRange && processedVal > 0.0)
             {
                 double minTemp = rule["temp-range"][0];
                 double maxTemp = rule["temp-range"][1];
 
-
-
                 // FIXME: do the math
                 double p = (processedVal - minTemp) / (maxTemp - minTemp);
 
-                std::cout << std::fixed << std::setfill('0') << std::setw(3) << std::setprecision(3)
-                          << "INFO : Temp-Range ["
-                          << minTemp << "\'C, " << maxTemp << "\'C] @ " << processedVal << "\'C"
-                          << ", p=" << p
-                          << std::endl;
+                //std::cout << std::fixed << std::setfill('0') << std::setw(3) << std::setprecision(3)
+                //          << "INFO : Temp-Range ["
+                //          << minTemp << "\'C, " << maxTemp << "\'C] @ " << processedVal << "\'C"
+                //          << ", p=" << p
+                //          << std::endl;
+
+                calcuations = {
+                    { "temp-range", { minTemp, maxTemp }},
+                    { "process-value", processedVal },
+                    { "p", p }
+                };
 
                 PValues.push_back(p);
             }
-
         }
 
+        out[rule["name"].get<std::string>()] = {
+            { "sensors", sensors_json },
+            { "processed", sensor_processed },
+            { "calc", calcuations }
+        };
     }
+
+    json decision_json;
 
     // FIXME: extract to another function for fan control
     long global_fan_min {0};
@@ -142,15 +186,23 @@ static void MonitorGroup(const json & config, std::vector<SensorInput> &sensors,
     }
 
     auto maxP = std::max_element(std::begin(PValues), std::end(PValues));
-    std::cout << "\nINFO : Fan Controls "
-              << "Global Fan Min=" << global_fan_min << " RPM, "
-              << "Ps: [";
-    for (const auto& p : PValues)
-    {
-        std::cout << p << ", ";
-    }
-    std::cout << "], MaxP=" << (maxP != std::end(PValues) ? *maxP : 0.01) << std::endl;
+    //std::cout << "\nINFO : Fan Controls "
+    //          << "Global Fan Min=" << global_fan_min << " RPM, "
+    //          << "Ps: [";
+    //for (const auto& p : PValues)
+    //{
+    //    std::cout << p << ", ";
+    //}
+    auto maxP_Print = (maxP != std::end(PValues) ? *maxP : 0.01);
+    //std::cout << "], MaxP=" << maxP_Print << std::endl;
 
+    decision_json.push_back({
+        { "global-fan-min", global_fan_min },
+        { "Ps", PValues },
+        { "MaxP",  maxP_Print }
+    });
+
+    json actualation;
     for (auto &fan : fans)
     {
         auto fanRange = static_cast<double>(fan.Max() - fan.Min());
@@ -159,14 +211,27 @@ static void MonitorGroup(const json & config, std::vector<SensorInput> &sensors,
         fanTarget += std::max(fan.Min(), global_fan_min);
         fanTarget = std::min(fan.Max(), fanTarget);
 
-        std::cout << "INFO : FanControl: [" << fan.Label() << "] "
-           << "Manual: " << fan.Manual() << ", output: "
-           << fan.Output() << " [" << fan.Min() << ", " << fan.Max() << "]"
-           << ", Target=" << fanTarget << " RPM"
-           << std::endl;
+        //std::cout << "INFO : FanControl: [" << fan.Label() << "] "
+        //   << "Manual: " << fan.Manual() << ", output: "
+        //   << fan.Output() << " [" << fan.Min() << ", " << fan.Max() << "]"
+        //   << ", Target=" << fanTarget << " RPM"
+        //   << std::endl;
+
+        actualation.push_back({
+            { "Fan", fan.Label() },
+            { "Manual", fan.Manual() },
+            { "Output", fan.Output() },
+            { "Range", { fan.Min(), fan.Max() } },
+            { "Target", fanTarget }
+        });
 
         fan.Output(fanTarget);
     }
+
+    out["decision"] = decision_json;
+    out["actions"] = actualation;
+
+    return out.dump();
 }
 
 
@@ -234,14 +299,16 @@ int main(int, char**)
     DBusAppIF::InitEnv();
 
     app->RegisterTimeoutHandle([&]() {
-        std::cout << "\33[2J\33[1;1f\n-----" << std::endl;
-        MonitorGroup(UserConfig, sensors, fans);
+        //std::cout << "\33[2J\33[1;1f\n-----" << std::endl;
+        return MonitorGroup(UserConfig, sensors, fans);
         // FIXME: set time period 
         //std::this_thread::sleep_for(1s * Ts);
     });
 
     // starts the application loop
     app->Run();
+
+    // FIXME: NO_DBUS is broken here
 
     return 0;
 }
