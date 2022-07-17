@@ -26,9 +26,6 @@ using SensorInput = SMCObject; // alias
 #include "DBusAppIF.h"
 
 
-
-
-
 static bool IsGlobalIgnoredFan(const json &config, std::string_view label);
 static bool IsGlobalIgnoredSensor(const json &config, std::string_view label);
 
@@ -295,7 +292,9 @@ int main(int, char**)
 
     auto app = std::make_unique<DBusAppIF>();
 
-    std::locale::global(std::locale(""));
+    // FIXME: this causes numbers to be outputted with thousands comma
+    //        which is invalid input to most system...
+    //std::locale::global(std::locale(""));
     DBusAppIF::InitEnv();
 
     app->RegisterTimeoutHandle([&]() {
