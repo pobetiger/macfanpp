@@ -57,6 +57,8 @@ protected:
 
 private:
 
+    Glib::VariantContainerBase lastResult;
+
     Glib::RefPtr<Glib::MainLoop> loop;
 
     Glib::RefPtr<Gio::DBus::NodeInfo> introspectData;

@@ -32,14 +32,23 @@ bool DBusAppIF::on_timeout()
         result = timeOutTask();
     }
 
-    auto x = Glib::VariantContainerBase::create_tuple(Glib::Variant<std::string>::create(result));
-    connection->emit_signal("/com/pobetiger/macfanpp/Control",
-                            "com.pobetiger.macfanpp",
-                            "Timeout",
-                            "", // to all listeners
-                            x);
+    //std::cout << "Timeout task done" << std::endl;
+    //std::cout << "result: " << result << std::endl;
 
-
+    // keep last result for querying
+    lastResult = Glib::VariantContainerBase::create_tuple(Glib::Variant<std::string>::create(result));
+    if (connection)
+    {
+        connection->emit_signal("/com/pobetiger/macfanpp/Control",
+                                "com.pobetiger.macfanpp",
+                                "Timeout",
+                                "", // to all listeners
+                                lastResult);
+    }
+    else
+    {
+        std::cout << "!! ERROR !! Connection invalid? Unable to emit signal." << std::endl;
+    }
 
     return true; // recur
 }
@@ -85,15 +94,16 @@ void DBusAppIF::Run()
     try
     {
         introspectData = Gio::DBus::NodeInfo::create_for_xml(Glib::ustring{serviceXml.data()});
-        const auto id = Gio::DBus::own_name(Gio::DBus::BusType::BUS_TYPE_SESSION,
+        const auto id = Gio::DBus::own_name(Gio::DBus::BusType::BUS_TYPE_SYSTEM,
                                             "com.pobetiger.macfanpp",
                                             {}, // bus acq
-                                            sigc::mem_fun(*this, &DBusAppIF::on_name_acquired),
-                                            //sigc::ptr_fun(&on_name_acquired), // name acq
+                                            sigc::mem_fun(*this, &DBusAppIF::on_name_acquired), // name acq
+                                            //sigc::ptr_fun(&on_name_acquired),
                                             {}); // name lost
 
         Glib::signal_timeout().connect(sigc::mem_fun(*this, &DBusAppIF::on_timeout), 3000);
         // start the loop
+        std::cout << "Starting GDBus Glibmm loop" << std::endl;
         loop->run();
         Gio::DBus::unown_name(id);
     }
