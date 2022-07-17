@@ -27,9 +27,10 @@ std::string FanControl::PrintStatus()
 
 void FanControl::Output(long value)
 {
+    auto capped = std::clamp(value, Min(), Max());
 
     std::stringstream ss;
-    ss << value;
+    ss << capped;
 
     std::string txt {ss.str()};
     //std::cout << "TRACE: write " << txt << " to " << Get("output") << std::endl;
