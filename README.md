@@ -73,8 +73,64 @@ Or to give battery or harddrive more cooling based on detected temperature in th
 
 - `clang`, recent version that supports `std::filesystem`
 - `nlohmann::json`, it makes json so easy.
+- `glibmm-2.4` and `giomm-2.4`: needed to support DBus integrartion
 
 ## RDEPENDS
 
 - Kernel that supports the `SMC` and a Mac machine.
+
+
+## Installation
+
+The stage the install (as root):
+
+    cp macfanpp /usr/local/sbin/macfanpp
+    chmod +x /usr/local/sbin/macfanpp
+    cp config/com.pobetiger.macfanpp.conf /etc/dbus-1/system.d/
+    mkdir -p /etc/macfanpp
+    cp -R src/*.json /etc/macfanpp/
+
+To run:
+
+- Setup your `init` system to do the following
+
+    #!/bin/sh
+
+    cd /etc/macfanpp
+    exec /usr/local/sbin/macfanpp
+
+
+To get dbus logs (may require sudo):
+
+    $ dbus-monitor --monitor --system "type='signal',sender='com.pobetiger.macfanpp'"
+
+The output is json format, use `jq` or other libraries in your favorite language to parse
+example (reformatted by hand for ease of reading):
+
+    signal time=1658118382.034471 sender=:1.2072 -> destination=(null destination) serial=136 path=/com/pobetiger/macfanpp/Control; interface=com.pobetiger.macfanpp; member=Timeout
+       array of bytes "{
+           "Avg-Rule":{"calc":null,"processed":null,"sensors":null},
+           "CPU-Group": {
+               "calc":{"p":0.13703208556149726,"process-value":53.65909090909091,"temp-range":[49.0,83.0]},
+               "processed":[{"avg":["value",53.65909090909091]}],
+               "sensors":[
+                   {"description":"PECI CPU","label":"TCXc","temperature":54.25},
+                   {"description":"CPU 0 Proximity","label":"TC0P","temperature":49.5},
+                   {"description":"CPU 0 F","label":"TC0F","temperature":55.5},
+                   {"description":"CPU Core 1 (Digital)","label":"TC1C","temperature":53.0},
+                   {"description":"CPU Core 0 (Digital)","label":"TC0C","temperature":54.0},
+                   {"description":"CPU Core 3","label":"TC3C","temperature":54.0},
+                   {"description":"CPU Core 2","label":"TC2C","temperature":54.0},
+                   {"description":"CPU Diode 0 (Analog) Package","label":"TC0D","temperature":53.25},
+                   {"description":"PECI CPU","label":"TCXC","temperature":54.25},
+                   {"description":"CPU 0 E","label":"TC0E","temperature":54.5},
+                   {"description":"CPU_PECI_CORE_TEMPERATURE (PECI GPU)","label":"TCGC","temperature":54.0}]},
+           "GPU-Group":{
+               "calc":{"p":0.16129032258064516,"process-value":54.0,"temp-range":[49.0,80.0]},
+               "processed":[{"max":["value",54.0]}],
+               "sensors":[{"description":"CPU_PECI_CORE_TEMPERATURE (PECI GPU)","label":"TCGC","temperature":54.0}]},
+           "Max-Rule":{"calc":null,"processed":null,"sensors":null},
+           "actions":[{"Fan":"Exhaust  ","Manual":"1","Output":"2397","Range":[1800,5500],"Target":2397}],
+           "decision":[{"MaxP":0.16129032258064516,"Ps":[0.13703208556149726,0.16129032258064516],"global-fan-min":1800}],
+           "program":["macfanpp"]}" + \0
 
