@@ -94,11 +94,11 @@ To run:
 
 - Setup your `init` system to do the following
 
-     #!/bin/sh
-     
-     cd /etc/macfanpp
-     exec /usr/local/sbin/macfanpp
-
+```
+#!/bin/sh
+cd /etc/macfanpp
+exec /usr/local/sbin/macfanpp
+```
 
 To get dbus logs (may require sudo):
 
