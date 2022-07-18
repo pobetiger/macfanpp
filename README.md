@@ -95,7 +95,7 @@ To run:
 - Setup your `init` system to do the following
 
     #!/bin/sh
-
+    
     cd /etc/macfanpp
     exec /usr/local/sbin/macfanpp
 
